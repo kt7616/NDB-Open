@@ -29,6 +29,7 @@ header .sub{margin-left:14px;font-size:11px;color:var(--text-ll)}
 .sidebar.collapsed{width:0 !important;min-width:0;padding:0;overflow:hidden;opacity:0}
 .sidebar-toggle{width:34px;height:34px;border:1px solid var(--border);border-radius:7px;background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-l);transition:all .15s;margin-right:12px;flex-shrink:0;line-height:1}
 .sidebar-toggle:hover{background:var(--pri-lt);color:var(--pri);border-color:var(--pri)}
+.sidebar-toggle.active{color:var(--pri);border-color:var(--pri);background:var(--pri-lt)}
 
 /* Resize handle */
 .resize-handle{width:6px;cursor:col-resize;flex-shrink:0;position:relative;z-index:5;background:transparent;transition:background .15s;border-left:1px solid var(--border)}
@@ -126,6 +127,26 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;hei
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--pri);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .load-text{margin-top:10px;color:var(--text-ll);font-size:12px;text-align:center}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  body{overflow-y:auto;height:auto}
+  #app{height:auto;min-height:100vh}
+  .content{overflow:visible}
+  .map-area{min-height:calc(100vh - var(--hdr-h))}
+  .resize-handle{display:none !important}
+  .map-stats{font-size:11px;padding:8px 10px}
+  .ms-val{font-size:13px} .ms-val-lg{font-size:15px}
+  .ms-lbl{font-size:9px} .ms-sub{font-size:8.5px}
+  .legend-ctrl{padding:6px 8px}
+  .lc-input{width:56px;font-size:12px;padding:3px 4px}
+  .lc-lbl{font-size:11px} .lc-sep{font-size:12px}
+  .lc-btn{font-size:11px;padding:3px 7px}
+  .lc-badge{font-size:10px}
+  header{padding:0 12px}
+  header h1{font-size:14px}
+  .tooltip{max-width:260px}
+}
 </style>
 </head>
 <body>
@@ -134,7 +155,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;hei
 
 <div id="app">
   <header>
-    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="サイドバー切替">&#9666;</button>
+    <button class="sidebar-toggle active" id="sidebarToggle" onclick="toggleSidebar()" title="サイドバー切替">&#9776;</button>
     <h1><b>NDB</b> Open Data</h1>
     <div class="sub">都道府県別 人口あたり算定回数マップ</div>
   </header>
@@ -417,9 +438,14 @@ function initMap() {
   const mainF = MGEO.features.filter(f => f.properties.N03_001 !== '沖縄県');
   const okiF  = MGEO.features.filter(f => f.properties.N03_001 === '沖縄県');
 
-  /* Bounding box for main Japan in Mercator coords (lon 129-146, lat 30.5-46) */
+  /* Bounding box for main Japan in Mercator coords.
+     Mobile: tighter crop (Tsushima left ~ Hokkaido main island right)
+     Desktop: wider with margin */
+  const isMobile = W < 500;
+  const lonL = isMobile ? 128.5 : 129, lonR = isMobile ? 145.5 : 146;
+  const latB = 30.5, latT = isMobile ? 45.8 : 46;
   const bbox = { type:'Feature', geometry:{ type:'Polygon', coordinates:[[
-    [MX(129),MY(30.5)],[MX(146),MY(30.5)],[MX(146),MY(46)],[MX(129),MY(46)],[MX(129),MY(30.5)]
+    [MX(lonL),MY(latB)],[MX(lonR),MY(latB)],[MX(lonR),MY(latT)],[MX(lonL),MY(latT)],[MX(lonL),MY(latB)]
   ]]}};
   const proj = d3.geoIdentity().reflectY(true).fitExtent([[20, 10], [W - 20, mapH - 10]], bbox);
   const path = d3.geoPath(proj);
@@ -747,7 +773,7 @@ function toggleSidebar() {
   const btn = document.getElementById('sidebarToggle');
   const collapsed = sb.classList.toggle('collapsed');
   rh.style.display = collapsed ? 'none' : '';
-  btn.innerHTML = collapsed ? '&#9776;' : '&#9666;';
+  btn.classList.toggle('active', !collapsed);
   /* Re-render map after CSS transition */
   clearTimeout(resizeT);
   resizeT = setTimeout(() => { initMap(); updateMap(false); }, 280);
@@ -791,11 +817,25 @@ function setupResize() {
 /* ================================================================ */
 /* Init                                                             */
 /* ================================================================ */
+function collapseSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const rh = document.getElementById('resizeHandle');
+  const btn = document.getElementById('sidebarToggle');
+  sb.classList.add('collapsed');
+  rh.style.display = 'none';
+  btn.classList.remove('active');
+}
+
 async function init() {
   try {
     const [gr, dr] = await Promise.all([fetch('data/prefectures.geojson'), fetch('data/ndb_radiation.json')]);
     GEO = await gr.json(); DATA = await dr.json();
-    reclassifyData(); buildLookup(); setupControls(); setupResize(); setupLegendCtrl(); initMap(); updateMap(true);
+    reclassifyData(); buildLookup(); setupControls(); setupResize(); setupLegendCtrl();
+    /* Mobile portrait: hide sidebar by default */
+    if (window.matchMedia('(max-width: 768px) and (orientation: portrait)').matches) {
+      collapseSidebar();
+    }
+    initMap(); updateMap(true);
     document.getElementById('loading').classList.add('hidden');
   } catch(e) {
     document.querySelector('.load-text').textContent = 'データ読み込み失敗。python3 -m http.server でサーブしてください。';
