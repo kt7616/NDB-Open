@@ -13,3 +13,6 @@ desktop.ini
 .vscode/
 *.swp
 *~
+
+# Claude Code
+.claude/
