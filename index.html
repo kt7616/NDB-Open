@@ -175,9 +175,64 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;hei
 .ct-lbl{color:var(--text-l);flex:1}
 .ct-val{font-weight:600;color:var(--text);text-align:right}
 
+/* Disclaimer modal */
+.disclaimer-overlay{position:fixed;inset:0;z-index:2000;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;transition:opacity .3s}
+.disclaimer-overlay.hidden{opacity:0;pointer-events:none}
+.disclaimer-box{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.12);max-width:600px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.disclaimer-box h2{font-size:16px;font-weight:700;color:var(--text);padding:20px 24px 0;flex-shrink:0}
+.disclaimer-body{overflow-y:auto;padding:16px 24px;font-size:12.5px;line-height:1.8;color:var(--text-m);flex:1;min-height:0}
+.disclaimer-body h3{font-size:13px;font-weight:700;color:var(--text);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border-lt)}
+.disclaimer-body h3:first-child{margin-top:0}
+.disclaimer-body a{color:var(--pri-h);text-decoration:none;word-break:break-all}
+.disclaimer-body a:hover{text-decoration:underline}
+.disclaimer-body ul{list-style:none;padding:0}
+.disclaimer-body ul li{padding:2px 0;padding-left:1em;text-indent:-1em}
+.disclaimer-body ul li::before{content:'・'}
+.disclaimer-footer{flex-shrink:0;padding:14px 24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg)}
+.disclaimer-check{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-ll);cursor:not-allowed;user-select:none}
+.disclaimer-check.enabled{color:var(--text-m);cursor:pointer}
+.disclaimer-check input{width:16px;height:16px;accent-color:var(--pri);cursor:inherit}
+.disclaimer-btn{padding:10px 28px;border:none;border-radius:8px;background:var(--border);color:var(--text-ll);font-size:13px;font-weight:600;cursor:not-allowed;transition:all .15s}
+.disclaimer-btn:not(:disabled){background:var(--pri);color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(14,165,233,.3)}
+.disclaimer-btn:not(:disabled):hover{background:var(--pri-h)}
+
 </style>
 </head>
 <body>
+
+<div class="disclaimer-overlay" id="disclaimerOverlay">
+  <div class="disclaimer-box">
+    <h2>ご利用にあたって</h2>
+    <div class="disclaimer-body" id="disclaimerBody">
+      <p>本サイトは、以下の公的データを基に放射線治療に関する算定回数を都道府県別に可視化する非公式の簡易解析ツールです。</p>
+      <h3>データ引用元</h3>
+      <p><b>1. 厚生労働省「NDBオープンデータ」</b><br>
+      <a href="https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000177182.html" target="_blank" rel="noopener">https://www.mhlw.go.jp/stf/seisakunitsuite/bunya/0000177182.html</a><br>
+      レセプト情報・特定健診等情報データベース（NDB）より作成された集計表データを使用しています。</p>
+      <p><b>2. 総務省統計局「人口推計」</b><br>
+      <a href="https://www.stat.go.jp/data/jinsui/index.html" target="_blank" rel="noopener">https://www.stat.go.jp/data/jinsui/index.html</a><br>
+      都道府県別人口データを使用しています。</p>
+      <p><b>3. 国土交通省「国土数値情報（行政区域データ N03）」</b><br>
+      <a href="https://nlftp.mlit.go.jp/ksj/" target="_blank" rel="noopener">https://nlftp.mlit.go.jp/ksj/</a><br>
+      都道府県境界の地図データを使用しています。</p>
+      <h3>データの秘匿処理について</h3>
+      <p>NDBオープンデータでは「匿名医療保険等関連情報データベース（NDB）の提供に関するガイドライン」の最小集計単位の原則に基づき、都道府県別の算定回数が<b>10未満</b>の場合は値が秘匿（「-」表示）されています。</p>
+      <p>また、秘匿値が1箇所のみとなり合計値から逆算可能となる場合には、10以上の最小値も追加で秘匿される処理が施されています。このため、特定の診療行為・年度においては、多くの都道府県または全都道府県でデータが欠損する場合があります。</p>
+      <p>本サイトでは秘匿値を灰色（データなし）で表示しています。</p>
+      <h3>免責事項</h3>
+      <ul>
+        <li>本サイトは個人が作成した非公式ツールであり、厚生労働省・総務省・国土交通省とは一切関係ありません。</li>
+        <li>表示される値には集計処理上の誤りが含まれる可能性があります。正確な数値は必ず上記の原典データをご確認ください。</li>
+        <li>本サイトの情報を利用したことにより生じたいかなる損害についても、作成者は一切の責任を負いません。</li>
+        <li>本サイトの利用は利用者自身の責任において行ってください。</li>
+      </ul>
+    </div>
+    <div class="disclaimer-footer">
+      <label class="disclaimer-check" id="disclaimerCheckLabel"><input type="checkbox" id="disclaimerCheck" disabled> 上記の内容を確認しました</label>
+      <button class="disclaimer-btn" id="disclaimerBtn" disabled onclick="acceptDisclaimer()">利用開始</button>
+    </div>
+  </div>
+</div>
 
 <div class="loading" id="loading"><div><div class="spinner"></div><div class="load-text">データを読み込み中...</div></div></div>
 
@@ -1256,9 +1311,31 @@ function setupResize() {
 }
 
 /* ================================================================ */
+/* Disclaimer                                                       */
+/* ================================================================ */
+function setupDisclaimer() {
+  const body = document.getElementById('disclaimerBody');
+  const check = document.getElementById('disclaimerCheck');
+  const btn = document.getElementById('disclaimerBtn');
+  const label = document.getElementById('disclaimerCheckLabel');
+  function updateCheckState() {
+    const atBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 2;
+    const noScroll = body.scrollHeight <= body.clientHeight;
+    if (atBottom || noScroll) { check.disabled = false; label.classList.add('enabled'); }
+  }
+  body.addEventListener('scroll', updateCheckState);
+  requestAnimationFrame(updateCheckState);
+  check.addEventListener('change', () => { btn.disabled = !check.checked; });
+}
+function acceptDisclaimer() {
+  document.getElementById('disclaimerOverlay').classList.add('hidden');
+}
+
+/* ================================================================ */
 /* Init                                                             */
 /* ================================================================ */
 async function init() {
+  setupDisclaimer();
   try {
     const [gr, dr] = await Promise.all([fetch('data/prefectures.geojson'), fetch('data/ndb_radiation.json')]);
     GEO = await gr.json(); DATA = await dr.json();
